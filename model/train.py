@@ -5,13 +5,12 @@ import pandas as pd
 from datasets import load_dataset
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler,LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.neighbors import NearestNeighbors
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
-from sklearn.metrics import mean_absolute_error,mean_squared_error,accuracy_score,precision_score,recall_score,f1_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score, precision_score, recall_score, f1_score
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,51 +31,23 @@ def load_data() -> pd.DataFrame:
 def preprocess_features(df: pd.DataFrame):
     """Preprocess data for regression and classification"""
     logger.info("Rozpoczęto wstępny preprocessing...")
-    X = df.drop(["track_id", "artists", "album_name", "track_name"], axis=1)
+
+    # Drop genres
+    unwanted_genres = [
+        'indian'
+    ]
+
+    unwanted_track_ids = df[df['track_genre'].isin(unwanted_genres)]['track_id'].unique()
+    df = df[~df['track_id'].isin(unwanted_track_ids)]
+    df = df.drop_duplicates(subset=['track_id'])
+
+    logger.info(f"Po usunięciu duplikatów i niechcianych gatunków zostało wierszy: {df.shape[0]}")
+
+    X = df.drop(["track_id", "artists", "album_name", "track_name", "Unnamed: 0"], axis=1)
 
     X['explicit'] = X['explicit'].astype(bool).map({False: 0, True: 1})
 
     return X
-
-
-def prepare_regression(df: pd.DataFrame):
-    """Prepare data for regression on popularity"""
-    logger.info("Przygotowywanie danych pod regresję...")
-    y = df['popularity'].astype(int)
-    X = df.drop(["popularity"], axis=1) 
-
-    X = pd.get_dummies(X, columns=['track_genre'], dtype=int)  
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    return X_scaled, y, scaler
-
-
-def prepare_classification(df: pd.DataFrame):
-    """Prepare data for classification by track_genre"""
-    logger.info("Przygotowywanie danych pod klasyfikację...")
-    y_text = df['track_genre']
-    le = LabelEncoder()
-    y = le.fit_transform(y_text)
-
-    X = df.drop(["track_genre"], axis=1) 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    return X_scaled, y, scaler, le
-
-
-def prepare_recommendation(df: pd.DataFrame):
-    """Prepare data for Nearest Neighbors recommendation"""
-    logger.info("Przygotowywanie danych pod system rekomendacji...")
-    
-    X = pd.get_dummies(df, columns=['track_genre'], dtype=int)  
-    
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    return X_scaled, scaler
 
 def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
     """Split the dataset into train and test subsets."""
@@ -93,11 +64,9 @@ def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
 
 def train_model(model: BaseEstimator, X_train: pd.DataFrame, y_train: pd.DataFrame = None):
     """Initialize and train model."""
-    model_name = type(model).__name__
-    logger.info(f"Rozpoczęto trenowanie modelu: {model_name}...")
+
     model.fit(X_train, y_train)
-    logger.info(f"Zakończono trenowanie modelu: {model_name}.")
-    
+
     return model
 
 def evaluate_model(model, X_test, y_test):
@@ -130,11 +99,23 @@ def save_pipeline(pipeline, output_path: str) -> None:
 
 def main():
     df = load_data()
+
+    # Store metadata for recomendation model
+    metadata = df[['track_id', 'track_name', 'artists', 'album_name']].reset_index(drop=True)
+
     df = preprocess_features(df)
 
-    X_reg, y_reg, scaler_reg = prepare_regression(df)
-    X_clf, y_clf, scaler_clf, le_clf = prepare_classification(df)
-    X_nn, scaler_nn = prepare_recommendation(df)
+    # Prepare data for regresion
+    y_reg = df['popularity'].astype(int)
+    X_reg = df.drop(["popularity"], axis=1)
+
+    # Prepare data for classification
+    le_clf = LabelEncoder()
+    y_clf = le_clf.fit_transform(df['track_genre'])
+    X_clf = df.drop(["track_genre","popularity"], axis=1)
+
+    # Prepare data for recommendation
+    X_nn = df.drop(["popularity"], axis=1)
 
     logger.info("Podział na zbiory treningowe i testowe...")
     X_reg_train, X_reg_test, y_reg_train, y_reg_test = split_data(
@@ -147,64 +128,67 @@ def main():
         y_clf
     )
 
-    model_reg = RandomForestRegressor(
-        n_estimators=10,
-        random_state=61,
-        max_depth=1
+    reg_cat_cols = ['track_genre']
+    reg_num_cols = X_reg.select_dtypes(include=['int64', 'float64', 'int32', 'float32']).columns.tolist()
+    clf_num_cols = X_clf.select_dtypes(include=['int64', 'float64', 'int32', 'float32']).columns.tolist()
+
+
+    preprocessor_reg_nn = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), reg_num_cols),
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), reg_cat_cols)
+        ]
     )
 
-    model_clf = RandomForestClassifier(
-        n_estimators=10,
-        random_state=61,
-        max_depth=1
+    preprocessor_clf = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), clf_num_cols)
+        ]
     )
-
-    model_nn = NearestNeighbors (
-        n_neighbors=5,
-        metric="cosine"
-    )
-
-    model_reg = train_model(model_reg,X_reg_train,y_reg_train)
-    model_clf = train_model(model_clf,X_clf_train,y_clf_train)
-    model_nn = train_model(model_nn, X_nn)
-
-    metrics_reg = evaluate_model(model_reg, X_reg_test, y_reg_test)
-    metrics_clf = evaluate_model(model_clf, X_clf_test, y_clf_test)
 
     pipeline_reg = Pipeline(
         steps=[
-            ('preprocessor', ColumnTransformer(
-                transformers=[
-                    ('scale',scaler_reg)
-                ]
+            ('preprocessor', preprocessor_reg_nn),
+            ('regressor', RandomForestRegressor(
+                n_estimators=100,
+                random_state=61,
+                max_depth=15,
+                min_samples_split=5,
+                n_jobs=-1
             )),
-            ('regressor', model_reg),
         ]
     )
-
 
     pipeline_clf = Pipeline(
         steps=[
-            ('preprocessor', ColumnTransformer(
-                transformers=[
-                    ('scale',scaler_clf)
-                ]
-            )),
-            ('regressor', model_clf),
+            ('preprocessor', preprocessor_clf),
+            ('classifier', RandomForestClassifier(n_estimators=10, random_state=61, max_depth=1)),
         ]
     )
-
     
     pipeline_nn = Pipeline(
         steps=[
-            ('preprocessor', ColumnTransformer(
-                transformers=[
-                    ('scale',scaler_nn)
-                ]
-            )),
-            ('regressor', model_nn),
+            ('preprocessor', preprocessor_reg_nn),
+            ('recommender', NearestNeighbors(n_neighbors=5, metric="cosine")),
         ]
     )
+
+    logger.info("Trenowanie modelu regresji...")
+    pipeline_reg = train_model(pipeline_reg, X_reg_train, y_reg_train)
+    logger.info("Trenowanie modelu klasyfikacji...")
+    pipeline_clf = train_model(pipeline_clf, X_clf_train, y_clf_train)
+    logger.info("Przygotowywanie modelu rekomendacji...")
+    pipeline_nn = train_model(pipeline_nn, X_nn)
+
+    metrics_reg = evaluate_model(pipeline_reg, X_reg_test, y_reg_test)
+    metrics_clf = evaluate_model(pipeline_clf, X_clf_test, y_clf_test)
+
+    # Save metadata in recomendation nn model
+    pipeline_nn.metadata_ = metadata
+
+    # Save metrics
+    pipeline_reg.metrics_ = metrics_reg
+    pipeline_clf.metrics_ = metrics_clf
 
     current_dir = os.path.dirname(os.path.abspath(__file__))    
     data_dir = os.path.join(current_dir, "..", "data")

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-class TrackInput(BaseModel):
+class TrackFeatures(BaseModel):
     duration_ms: int = Field(..., description="Czas trwania utworu w milisekundach", example=228000)
     explicit: bool = Field(..., description="Czy utwór zawiera wulgaryzmy", example=False)
     danceability: float = Field(..., description="Taneczność (0.0 - 1.0)", example=0.59)
@@ -15,4 +15,13 @@ class TrackInput(BaseModel):
     valence: float = Field(..., description="Pozytywny ładunek emocjonalny (0.0 - 1.0)", example=0.82)
     tempo: float = Field(..., description="Tempo utworu w BPM", example=126.0)
     time_signature: int = Field(..., description="Metrum utworu (np. 3, 4, 5)", example=4)
-    track_genre: str = Field(..., description="Gatunek muzyczny utworu", example="pop-film")
+
+class RegressionInput(TrackFeatures):
+    track_genre: str = Field(..., example="pop-film")
+
+class ClassificationInput(TrackFeatures):
+    pass
+
+class RecomendationInput(TrackFeatures):
+    track_genre: str = Field(..., example="pop-film")
+    pass

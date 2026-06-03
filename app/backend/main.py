@@ -1,3 +1,4 @@
+import os
 import logging
 import joblib
 from contextlib import asynccontextmanager
@@ -8,12 +9,15 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler,LabelEncoder
 
 
-from app.backend.schemas import TrackInput
+from app.backend.schemas import ClassificationInput, RegressionInput, RecomendationInput
 
 pipelines = {}
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-PIPELINES_DIR = BASE_DIR / "pipelines"
+
+DEFAULT_MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+
+MODEL_DIR_PATH = os.getenv("MODEL_DIR", str(DEFAULT_MODEL_DIR))
+PIPELINES_DIR = Path(MODEL_DIR_PATH)
 
 # Logging config
 logging.basicConfig(
@@ -60,13 +64,14 @@ app = FastAPI(
 )
 
 def get_model_info(model_data, include_metrics=True):
-    """Helper to safely extract model status."""
+    """Helper to safely extract model status and metrics."""
     if not model_data:
         return {"status": "error", "metrics": None} if include_metrics else {"status": "error"}
     
     result = {"status": "ok"}
     if include_metrics:
-        result["metrics"] = model_data.get("metrics")
+        result["metrics"] = getattr(model_data, "metrics_", None)
+        
     return result
 
 @app.get("/health")
@@ -82,9 +87,9 @@ def health_check():
     }
 
 @app.post("/predict")
-def predict(data: TrackInput):
+def predict(data: RegressionInput):
     """
-    Endpoint wykonujący predykcję na podstawie przekazanych danych pasażera.
+    Endpoint wykonujący predykcję na podstawie przekazanych danych utworu.
     """
     pipeline = pipelines.get("regression")
     
@@ -103,3 +108,81 @@ def predict(data: TrackInput):
         raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+    
+
+@app.post("/classify")
+def predict(data: ClassificationInput):
+    """
+    Endpoint wykonujący klasyfikacjie do gatunku na podstawie przekazanych danych utworu.
+    """
+    pipeline = pipelines.get("classification")
+    
+    # 503 Service Unavailable, jeśli pipeline nie jest załadowany
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
+
+    try:
+        input_df = pd.DataFrame([data.model_dump(by_alias=True)])
+
+        prediction = pipeline.predict(input_df)
+        
+        return {"prediction": int(prediction[0])}
+        
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+    
+@app.post("/recommend")
+def predict(data: RecomendationInput, n_recommendations: int = 5):
+    """
+    Endpoint zwracający najbardziej zbliżone utwory ze zbioru treningowego na podstawie danych
+    """
+    pipeline = pipelines.get("recommendation")
+    
+    # 503 Service Unavailable, jeśli pipeline nie jest załadowany
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
+
+    try:
+        input_df = pd.DataFrame([data.model_dump(by_alias=True)])
+
+        # Run transformation from pipeline
+        X_transformed = pipeline[:-1].transform(input_df)
+
+        # Get nn model
+        nn_model = pipeline.named_steps['recommender']
+
+        distances, indices = nn_model.kneighbors(X_transformed, n_neighbors=n_recommendations)
+
+        recommended_indices = indices[0].tolist()
+        recommended_distances = distances[0].tolist()
+
+        recommendations = []
+        if hasattr(pipeline, "metadata_"):
+            metadata_df = pipeline.metadata_
+            recommended_metadata = metadata_df.iloc[recommended_indices]
+            
+            for i, (_, row) in enumerate(recommended_metadata.iterrows()):
+                recommendations.append({
+                    "track_id": row["track_id"],
+                    "track_name": row["track_name"],
+                    "artists": row["artists"],
+                    "album_name": row["album_name"],
+                    "cosine_distance": float(recommended_distances[i])
+                })
+        else:
+            # Fallback
+            recommendations = [
+                {"dataset_index": idx, "distance": dist} 
+                for idx, dist in zip(recommended_indices, recommended_distances)
+            ]
+
+        return {
+            "recommendations": recommendations
+        }
+        
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}")
