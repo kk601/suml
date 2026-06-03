@@ -64,6 +64,18 @@ def prepare_classification(df: pd.DataFrame):
 
     return X_scaled, y, scaler, le
 
+
+def prepare_recommendation(df: pd.DataFrame):
+    """Prepare data for Nearest Neighbors recommendation"""
+    logger.info("Przygotowywanie danych pod system rekomendacji...")
+    
+    X = pd.get_dummies(df, columns=['track_genre'], dtype=int)  
+    
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    return X_scaled, scaler
+
 def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
     """Split the dataset into train and test subsets."""
 
@@ -77,7 +89,7 @@ def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
 
     return X_train, X_test, y_train, y_test
 
-def train_model(model: BaseEstimator, X_train: pd.DataFrame, y_train: pd.DataFrame):
+def train_model(model: BaseEstimator, X_train: pd.DataFrame, y_train: pd.DataFrame = None):
     """Initialize and train model."""
     model_name = type(model).__name__
     logger.info(f"Rozpoczęto trenowanie modelu: {model_name}...")
@@ -122,6 +134,7 @@ def main():
 
     X_reg, y_reg, scaler_reg = prepare_regression(df)
     X_clf, y_clf, scaler_clf, le_clf = prepare_classification(df)
+    X_nn, scaler_nn = prepare_recommendation(df)
 
     logger.info("Podział na zbiory treningowe i testowe...")
     X_reg_train, X_reg_test, y_reg_train, y_reg_test = split_data(
@@ -146,8 +159,14 @@ def main():
         max_depth=10
     )
 
+    model_nn = NearestNeighbors (
+        n_neighbors=5,
+        metric="cosine"
+    )
+
     model_reg = train_model(model_reg,X_reg_train,y_reg_train)
     model_clf = train_model(model_clf,X_clf_train,y_clf_train)
+    model_nn = train_model(model_nn, X_nn)
 
     metrics_reg = evaluate_model(model_reg, X_reg_test, y_reg_test)
     metrics_clf = evaluate_model(model_clf, X_clf_test, y_clf_test)
@@ -165,14 +184,21 @@ def main():
         "metrics": metrics_clf
     }
 
+    pipeline_nn = {
+        "model": model_nn,
+        "scaler": scaler_nn
+    }
+
     current_dir = os.path.dirname(os.path.abspath(__file__))    
     data_dir = os.path.join(current_dir, "..", "data")
 
     path_reg = os.path.join(data_dir, "regression_pipeline.pkl")
     path_clf = os.path.join(data_dir, "classification_pipeline.pkl")
+    path_nn = os.path.join(data_dir, "recomendation_pipeline.pkl")
 
     save_pipeline(pipeline_reg,path_reg)
     save_pipeline(pipeline_clf,path_clf)
+    save_pipeline(pipeline_nn,path_nn)
 
     logger.info("Wszystkie operacje zakończone sukcesem")
 
