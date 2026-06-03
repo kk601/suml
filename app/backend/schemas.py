@@ -1,0 +1,18 @@
+from pydantic import BaseModel, Field
+
+class TrackInput(BaseModel):
+    duration_ms: int = Field(..., description="Czas trwania utworu w milisekundach", example=228000)
+    explicit: bool = Field(..., description="Czy utwór zawiera wulgaryzmy", example=False)
+    danceability: float = Field(..., description="Taneczność (0.0 - 1.0)", example=0.59)
+    energy: float = Field(..., description="Energia (0.0 - 1.0)", example=0.74)
+    key: int = Field(..., description="Tonacja utworu (0 - 11)", example=8)
+    loudness: float = Field(..., description="Głośność w dB (zazwyczaj -60 do 0)", example=-7)
+    mode: int = Field(..., description="Rodzaj skali (0 dla moll, 1 dla dur)", example=1)
+    speechiness: float = Field(..., description="Mowność utworu (0.0 - 1.0)", example=0.05)
+    acousticness: float = Field(..., description="Akustyczność (0.0 - 1.0)", example=0.02)
+    instrumentalness: float = Field(..., description="Instrumentalność (0.0 - 1.0)", example=0.0)
+    liveness: float = Field(..., description="Ewentualność nagrania na żywo (0.0 - 1.0)", example=0.65)
+    valence: float = Field(..., description="Pozytywny ładunek emocjonalny (0.0 - 1.0)", example=0.82)
+    tempo: float = Field(..., description="Tempo utworu w BPM", example=126.0)
+    time_signature: int = Field(..., description="Metrum utworu (np. 3, 4, 5)", example=4)
+    track_genre: str = Field(..., description="Gatunek muzyczny utworu", example="pop-film")

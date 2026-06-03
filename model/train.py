@@ -1,8 +1,10 @@
-import pickle
+import joblib
 import logging
 import os
 import pandas as pd
 from datasets import load_dataset
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler,LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -121,14 +123,12 @@ def evaluate_model(model, X_test, y_test):
     return metrics
 
 def save_pipeline(pipeline, output_path: str) -> None:
-    """Save pipeline with model to .pkl file."""
+    """Save pipeline to .pkl file."""
     with open(output_path, 'wb') as f:
-        pickle.dump(pipeline, f)
+        joblib.dump(pipeline, f)
     logger.info(f"Zapisano pipeline do pliku: {output_path}")
 
 def main():
-    model_path = 'saved_model.pkl'
-
     df = load_data()
     df = preprocess_features(df)
 
@@ -148,15 +148,15 @@ def main():
     )
 
     model_reg = RandomForestRegressor(
-        n_estimators=100,
+        n_estimators=10,
         random_state=61,
-        max_depth=10
+        max_depth=1
     )
 
     model_clf = RandomForestClassifier(
-        n_estimators=100,
+        n_estimators=10,
         random_state=61,
-        max_depth=10
+        max_depth=1
     )
 
     model_nn = NearestNeighbors (
@@ -171,30 +171,47 @@ def main():
     metrics_reg = evaluate_model(model_reg, X_reg_test, y_reg_test)
     metrics_clf = evaluate_model(model_clf, X_clf_test, y_clf_test)
 
-    pipeline_reg = {
-        "model": model_reg,
-        "scaler": scaler_reg,
-        "metrics": metrics_reg
-    }
+    pipeline_reg = Pipeline(
+        steps=[
+            ('preprocessor', ColumnTransformer(
+                transformers=[
+                    ('scale',scaler_reg)
+                ]
+            )),
+            ('regressor', model_reg),
+        ]
+    )
 
-    pipeline_clf = {
-        "model": model_clf,
-        "scaler": scaler_clf,
-        "label_encoder": le_clf,
-        "metrics": metrics_clf
-    }
 
-    pipeline_nn = {
-        "model": model_nn,
-        "scaler": scaler_nn
-    }
+    pipeline_clf = Pipeline(
+        steps=[
+            ('preprocessor', ColumnTransformer(
+                transformers=[
+                    ('scale',scaler_clf)
+                ]
+            )),
+            ('regressor', model_clf),
+        ]
+    )
+
+    
+    pipeline_nn = Pipeline(
+        steps=[
+            ('preprocessor', ColumnTransformer(
+                transformers=[
+                    ('scale',scaler_nn)
+                ]
+            )),
+            ('regressor', model_nn),
+        ]
+    )
 
     current_dir = os.path.dirname(os.path.abspath(__file__))    
     data_dir = os.path.join(current_dir, "..", "data")
 
     path_reg = os.path.join(data_dir, "regression_pipeline.pkl")
     path_clf = os.path.join(data_dir, "classification_pipeline.pkl")
-    path_nn = os.path.join(data_dir, "recomendation_pipeline.pkl")
+    path_nn = os.path.join(data_dir, "recommendation_pipeline.pkl")
 
     save_pipeline(pipeline_reg,path_reg)
     save_pipeline(pipeline_clf,path_clf)
