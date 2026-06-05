@@ -29,25 +29,23 @@ def load_data() -> pd.DataFrame:
     return df
 
 def preprocess_features(df: pd.DataFrame):
-    """Preprocess data for regression and classification"""
+    """Initial preprocessing and filtering."""
     logger.info("Rozpoczęto wstępny preprocessing...")
 
-    # Drop genres
     unwanted_genres = [
-        'indian'
+        'indian', 'bollywood', 'world-music'
     ]
 
     unwanted_track_ids = df[df['track_genre'].isin(unwanted_genres)]['track_id'].unique()
     df = df[~df['track_id'].isin(unwanted_track_ids)]
-    df = df.drop_duplicates(subset=['track_id'])
+    
+    df = df.drop_duplicates(subset=['track_name', 'artists']).reset_index(drop=True)
 
     logger.info(f"Po usunięciu duplikatów i niechcianych gatunków zostało wierszy: {df.shape[0]}")
 
-    X = df.drop(["track_id", "artists", "album_name", "track_name", "Unnamed: 0"], axis=1)
+    df['explicit'] = df['explicit'].astype(bool).map({False: 0, True: 1})
 
-    X['explicit'] = X['explicit'].astype(bool).map({False: 0, True: 1})
-
-    return X
+    return df
 
 def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
     """Split the dataset into train and test subsets."""
@@ -100,10 +98,13 @@ def save_pipeline(pipeline, output_path: str) -> None:
 def main():
     df = load_data()
 
-    # Store metadata for recomendation model
-    metadata = df[['track_id', 'track_name', 'artists', 'album_name']].reset_index(drop=True)
-
     df = preprocess_features(df)
+
+    # Store metadata for recomendation model
+    metadata = df[['track_name', 'artists', 'track_genre']].copy()
+
+    # Drop columns before training
+    df = df.drop(["track_id", "artists", "album_name", "track_name", "Unnamed: 0"], axis=1, errors='ignore')
 
     # Prepare data for regresion
     y_reg = df['popularity'].astype(int)
@@ -129,8 +130,8 @@ def main():
     )
 
     reg_cat_cols = ['track_genre']
-    reg_num_cols = X_reg.select_dtypes(include=['int64', 'float64', 'int32', 'float32']).columns.tolist()
-    clf_num_cols = X_clf.select_dtypes(include=['int64', 'float64', 'int32', 'float32']).columns.tolist()
+    reg_num_cols = X_reg.select_dtypes(include=['number']).columns.tolist()
+    clf_num_cols = X_clf.select_dtypes(include=['number']).columns.tolist()
 
 
     preprocessor_reg_nn = ColumnTransformer(
@@ -162,7 +163,12 @@ def main():
     pipeline_clf = Pipeline(
         steps=[
             ('preprocessor', preprocessor_clf),
-            ('classifier', RandomForestClassifier(n_estimators=10, random_state=61, max_depth=1)),
+            ('classifier', RandomForestClassifier(
+                n_estimators=100, 
+                random_state=61, 
+                max_depth=15,
+                n_jobs=-1
+            )),
         ]
     )
     
@@ -189,6 +195,9 @@ def main():
     # Save metrics
     pipeline_reg.metrics_ = metrics_reg
     pipeline_clf.metrics_ = metrics_clf
+
+    # Save classes from encoder
+    pipeline_clf.target_classes_ = le_clf.classes_
 
     current_dir = os.path.dirname(os.path.abspath(__file__))    
     data_dir = os.path.join(current_dir, "..", "data")

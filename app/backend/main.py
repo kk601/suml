@@ -124,9 +124,14 @@ def predict(data: ClassificationInput):
     try:
         input_df = pd.DataFrame([data.model_dump(by_alias=True)])
 
-        prediction = pipeline.predict(input_df)
-        
-        return {"prediction": int(prediction[0])}
+        prediction_int = pipeline.predict(input_df)
+
+        # Match int to genre name
+        genre_name = "Unknown"
+        if hasattr(pipeline, "target_classes_"):
+            genre_name = str(pipeline.target_classes_[prediction_int])
+
+        return {"genre_name": genre_name}
         
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
@@ -165,10 +170,9 @@ def predict(data: RecomendationInput, n_recommendations: int = 5):
             
             for i, (_, row) in enumerate(recommended_metadata.iterrows()):
                 recommendations.append({
-                    "track_id": row["track_id"],
                     "track_name": row["track_name"],
                     "artists": row["artists"],
-                    "album_name": row["album_name"],
+                    "genre": row["track_genre"],
                     "cosine_distance": float(recommended_distances[i])
                 })
         else:
