@@ -24,7 +24,7 @@ available_genres = fetch_genres()
 track_rules = openapi_data["components"]["schemas"]["RegressionInput"]["properties"]
 
 # Use wide mode and collapse sidebar by default
-st.set_page_config(page_title="Music App AI", page_icon="🎵", layout="wide")
+st.set_page_config(page_title="Music App", page_icon="🎵", layout="wide")
 
 # Helpers for creating auto validated fields
 def create_auto_slider(field_name, step=None):
@@ -100,7 +100,7 @@ with st.sidebar:
         base_payload["valence"] = create_auto_slider("valence")
 
 # Main screen
-st.title("🎵 Music AI: Real-Time Dashboard")
+st.title("🎵 Music App: Real-Time Dashboard")
 st.markdown("Your predictions update immediately as you tweak the sidebar controls.")
 
 # Popularity and Genre side-by-side
