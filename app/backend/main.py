@@ -170,6 +170,7 @@ def predict(data: RecomendationInput, n_recommendations: int = 5):
             
             for i, (_, row) in enumerate(recommended_metadata.iterrows()):
                 recommendations.append({
+                    "track_id": str(row.get("track_id", "")),
                     "track_name": row["track_name"],
                     "artists": row["artists"],
                     "genre": row["track_genre"],

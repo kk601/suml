@@ -33,7 +33,7 @@ def preprocess_features(df: pd.DataFrame):
     logger.info("Rozpoczęto wstępny preprocessing...")
 
     unwanted_genres = [
-        'indian', 'bollywood', 'world-music'
+        'indian', 'bollywood', 'world-music', 'comedy'
     ]
 
     unwanted_track_ids = df[df['track_genre'].isin(unwanted_genres)]['track_id'].unique()
@@ -101,7 +101,7 @@ def main():
     df = preprocess_features(df)
 
     # Store metadata for recomendation model
-    metadata = df[['track_name', 'artists', 'track_genre']].copy()
+    metadata = df[["track_id",'track_name', 'artists', 'track_genre']].copy()
 
     # Drop columns before training
     df = df.drop(["track_id", "artists", "album_name", "track_name", "Unnamed: 0"], axis=1, errors='ignore')
