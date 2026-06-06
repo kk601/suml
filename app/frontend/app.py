@@ -3,13 +3,23 @@ import requests
 
 API_URL = "http://127.0.0.1:8000"
 
-# Initialy fetch inputs schemas
+# Initialy fetch inputs schemas and genres
 @st.cache_data
 def fetch_schema():
     response = requests.get("http://127.0.0.1:8000/openapi.json") 
     return response.json()
 
+@st.cache_data
+def fetch_genres():
+    fallback_options = ["pop", "rock", "hip-hop"]
+    try:
+        res = requests.get(f"{API_URL}/genres")
+        return res.json().get("genres", fallback_options)
+    except requests.exceptions.ConnectionError:
+        return fallback_options
+
 openapi_data = fetch_schema()
+available_genres = fetch_genres()
 
 track_rules = openapi_data["components"]["schemas"]["RegressionInput"]["properties"]
 
@@ -65,8 +75,8 @@ with st.sidebar:
     
     # General
     with st.expander("📝 General Info", expanded=True):
-        track_genre = st.text_input("Genre Context", value="pop")
-        n_recs = st.number_input("Num Recommendations", min_value=1, max_value=6, value=5)
+        track_genre = st.selectbox("Genre Context", options=available_genres)
+        n_recommendations = st.number_input("Num Recommendations", min_value=1, max_value=6, value=5)
         
         base_payload["duration_ms"] = create_auto_number("duration_ms", step=1000)
         base_payload["tempo"] = create_auto_number("tempo", step=1.0)
@@ -125,7 +135,7 @@ st.divider()
 st.subheader("🎧 Similar Track Recommendations")
 payload_recommend = {**base_payload, "track_genre": track_genre}
 try:
-    res_recs = requests.post(f"{API_URL}/recommend?n_recommendations={n_recs}", json=payload_recommend)
+    res_recs = requests.post(f"{API_URL}/recommend?n_recommendations={n_recommendations}", json=payload_recommend)
     if res_recs.status_code == 200:
         recs = res_recs.json().get('recommendations', [])
         

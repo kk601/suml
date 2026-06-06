@@ -191,3 +191,16 @@ def predict(data: RecomendationInput, n_recommendations: int = 5):
         raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}")
+
+@app.get("/genres")
+def get_available_genres():
+    """Returns a list of genres supported by the current classification model"""
+    cls_pipeline = pipelines.get("classification")
+    
+    if cls_pipeline is None or not hasattr(cls_pipeline, "target_classes_"):
+        raise HTTPException(
+            status_code=503, 
+            detail="Classification model is currently unavailable."
+        )
+        
+    return {"genres": cls_pipeline.target_classes_.tolist()}
