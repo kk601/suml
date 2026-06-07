@@ -1,12 +1,13 @@
+import os
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 # Initialy fetch inputs schemas and genres
 @st.cache_data
 def fetch_schema():
-    response = requests.get("http://127.0.0.1:8000/openapi.json") 
+    response = requests.get(f"{API_URL}/openapi.json") 
     return response.json()
 
 @st.cache_data
