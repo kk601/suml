@@ -100,8 +100,8 @@ with st.sidebar:
         base_payload["valence"] = create_auto_slider("valence")
 
 # Main screen
-st.title("🎵 Music App: Real-Time Dashboard")
-st.markdown("Your predictions update immediately as you tweak the sidebar controls.")
+st.title("🎵 Music App")
+st.markdown("Your predictions update immediately as you tweak the sidebar controls")
 
 # Popularity and Genre side-by-side
 col_pred, col_class = st.columns(2)
