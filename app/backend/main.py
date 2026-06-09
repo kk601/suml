@@ -87,7 +87,7 @@ def health_check():
     }
 
 @app.post("/predict")
-def predict(data: RegressionInput):
+def classify(data: RegressionInput):
     """
     Endpoint wykonujący predykcję na podstawie przekazanych danych utworu.
     """
@@ -111,7 +111,7 @@ def predict(data: RegressionInput):
     
 
 @app.post("/classify")
-def predict(data: ClassificationInput):
+def classify(data: ClassificationInput):
     """
     Endpoint wykonujący klasyfikacjie do gatunku na podstawie przekazanych danych utworu.
     """
@@ -139,7 +139,7 @@ def predict(data: ClassificationInput):
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
     
 @app.post("/recommend")
-def predict(data: RecommendationInput, n_recommendations: int = 5):
+def recommend(data: RecommendationInput, n_recommendations: int = 5):
     """
     Endpoint zwracający najbardziej zbliżone utwory ze zbioru treningowego na podstawie danych
     """
