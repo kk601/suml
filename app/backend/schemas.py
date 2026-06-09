@@ -22,6 +22,6 @@ class RegressionInput(TrackFeatures):
 class ClassificationInput(TrackFeatures):
     pass
 
-class RecomendationInput(TrackFeatures):
+class RecommendationInput(TrackFeatures):
     track_genre: str = Field(..., title="Genre Context", example="pop")
     pass

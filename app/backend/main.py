@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler,LabelEncoder
 
 
-from app.backend.schemas import ClassificationInput, RegressionInput, RecomendationInput
+from app.backend.schemas import ClassificationInput, RegressionInput, RecommendationInput
 
 pipelines = {}
 
@@ -139,7 +139,7 @@ def predict(data: ClassificationInput):
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
     
 @app.post("/recommend")
-def predict(data: RecomendationInput, n_recommendations: int = 5):
+def predict(data: RecommendationInput, n_recommendations: int = 5):
     """
     Endpoint zwracający najbardziej zbliżone utwory ze zbioru treningowego na podstawie danych
     """

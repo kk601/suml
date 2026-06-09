@@ -103,7 +103,7 @@ def main():
 
     df = preprocess_features(df)
 
-    # Store metadata for recomendation model
+    # Store metadata for recommendation model
     metadata = df[["track_id",'track_name', 'artists', 'track_genre']].copy()
 
     # Drop columns before training
@@ -192,7 +192,7 @@ def main():
     metrics_reg = evaluate_model(pipeline_reg, X_reg_test, y_reg_test)
     metrics_clf = evaluate_model(pipeline_clf, X_clf_test, y_clf_test)
 
-    # Save metadata in recomendation nn model
+    # Save metadata in recommendation nn model
     pipeline_nn.metadata_ = metadata
 
     # Save metrics
