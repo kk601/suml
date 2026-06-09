@@ -1,32 +1,91 @@
-# Music app
+# 🎵 Music App
 
-Create venv(tested with python 3.11):  
+A full-stack machine learning application to predict track popularity (Regression), classify genres (Classification), and recommend similar songs (Similarity Search) from dataset based on Spotify track features.
 
-Linux:  
-    `python3.11 -m venv .venv`  
-    `source .venv/bin/activate`
+It is based on [Spotify Tracks Dataset by Maharshi Pandya](https://huggingface.co/datasets/maharshipandya/spotify-tracks-dataset)
 
-Windows:  
-    `py -3.11 -m venv .venv`  
-    `.venv\Scripts\activate`  
+## 🛠️ Built With
 
+* **Language:** Python 3.11
+* **Frontend:** Streamlit
+* **Backend API:** FastAPI, Uvicorn, Pydantic
+* **Machine Learning:** scikit-learn (Random Forest, K-Nearest Neighbors), pandas, Hugging Face `datasets`
+* **Containerization:** Docker, Docker Compose
 
-Install requirements:  
-`pip install -r model/requirements.txt`  
-`pip install -r app/backend/requirements.txt`
+---
 
-Create models:  
-`python model/train.py`
+## Requirements
+- **Docker**
+- **Docker Compose**
+- **(Optional) Python 3.11 for local development without Docker**
 
-Run backend:  
-`uvicorn app.backend.main:app --reload`
+---
 
-Test  
-http://127.0.0.1:8000/docs
+## 🐳 Quickstart with Docker Compose (Recommended)
 
-Sample data:
+The easiest way to run the application is using Docker Compose. This ensures all dependencies and environments are perfectly replicated.
 
-- Classical
+### 1. Train the Models
+Before starting the web services, you must download the dataset and train the machine learning models:
+```bash
+docker-compose run --rm train
+```
+
+### 2. Start the App
+
+Once the models are generated, start the frontend and backend services:
+
+```bash
+docker-compose up --build
+```
+
+### 3. Access the Application
+- Frontend: http://localhost:8501
+- Backend API Docs: http://localhost:8000/docs
+
+## 💻 Local Development (Without Docker)
+**1. Create a virtual environment with python 3.11:**
+
+*Linux:*
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+```
+
+*Windows:*
+```cmd
+py -3.11 -m venv .venv
+.venv\Scripts\activate
+```
+
+**2. Install requirements:**
+```bash
+pip install -r model/requirements.txt
+pip install -r app/backend/requirements.txt
+pip install -r app/frontend/requirements.txt
+```
+
+**3. Train models:**
+```bash
+python model/train.py
+```
+
+**3. Run services**
+
+*Backend*
+```bash
+uvicorn app.backend.main:app --reload
+```
+
+*Frontend*
+```bash
+streamlit run app/frontend/app.py
+```
+
+## 🧪 Sample Data for Testing
+You can use the following JSON payloads to test the API directly via the FastAPI docs (http://127.0.0.1:8000/docs) or enter these values into the Streamlit UI.
+
+**Classical**
 
 ```json
 {
@@ -48,7 +107,7 @@ Sample data:
 }
 ```
 
-- Energetic Rock / Grunge
+**Energetic Rock / Grunge**
 ```json
 {
   "duration_ms": 301920,
@@ -69,7 +128,7 @@ Sample data:
 }
 ```
 
-- Club EDM / House
+**Club EDM / House**
 
 ```json
 {
@@ -91,7 +150,7 @@ Sample data:
 }
 ```
 
-- Synthwave
+**Synthwave**
 ```json
 {
   "duration_ms": 255000,
