@@ -132,21 +132,21 @@ You can use the following JSON payloads to test the API directly via the FastAPI
 
 ```json
 {
-  "duration_ms": 301920,
+  "duration_ms": 210000,
   "explicit": false,
-  "danceability": 0.502,
-  "energy": 0.912,
-  "key": 1,
-  "loudness": -4.556,
+  "danceability": 0.820,
+  "energy": 0.890,
+  "key": 7,
+  "loudness": -5.200,
   "mode": 1,
-  "speechiness": 0.0564,
-  "acousticness": 0.000025,
-  "instrumentalness": 0.000173,
-  "liveness": 0.106,
-  "valence": 0.720,
-  "tempo": 116.761,
+  "speechiness": 0.045,
+  "acousticness": 0.005,
+  "instrumentalness": 0.650,
+  "liveness": 0.080,
+  "valence": 0.550,
+  "tempo": 128.000,
   "time_signature": 4,
-  "track_genre": "rock"
+  "track_genre": "edm"
 }
 ```
 
