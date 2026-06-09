@@ -91,6 +91,9 @@ def evaluate_model(model, X_test, y_test):
 
 def save_pipeline(pipeline, output_path: str) -> None:
     """Save pipeline to .pkl file."""
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
     with open(output_path, 'wb') as f:
         joblib.dump(pipeline, f)
     logger.info(f"Zapisano pipeline do pliku: {output_path}")

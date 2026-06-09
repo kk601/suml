@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  train:
+    profiles: [train]
+    build:
+      context: .
+      dockerfile: model/Dockerfile
+    volumes:
+      - ./data:/app/data
+
   backend:
     build:
       context: .
