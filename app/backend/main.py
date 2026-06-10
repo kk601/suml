@@ -43,12 +43,12 @@ async def lifespan(app: FastAPI):
             try:
                 with open(path, "rb") as f:
                     pipelines[name] = joblib.load(f)
-                logger.info(f"Pipeline '{name}' załadowany pomyślnie.")
+                logger.info(f"Pipeline '{name}' loaded successfully.")
             except Exception as e:
-                logger.error(f"Błąd podczas ładowania pipeline '{name}': {e}")
+                logger.error(f"Error loading pipeline '{name}': {e}")
                 pipelines[name] = None
         else:
-            logger.warning(f"Nie znaleziono pliku dla pipeline '{name}' pod ścieżką: {path}")
+            logger.warning(f"File for pipeline '{name}' not found at path: {path}")
             pipelines[name] = None
                 
     yield
@@ -87,13 +87,13 @@ def health_check():
     }
 
 @app.post("/predict")
-def classify(data: RegressionInput):
+def predict(data: RegressionInput):
     """
-    Endpoint wykonujący predykcję na podstawie przekazanych danych utworu.
+    Endpoint that performs prediction based on the provided track data.
     """
     pipeline = pipelines.get("regression")
     
-    # 503 Service Unavailable, jeśli pipeline nie jest załadowany
+    # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
 
@@ -113,11 +113,11 @@ def classify(data: RegressionInput):
 @app.post("/classify")
 def classify(data: ClassificationInput):
     """
-    Endpoint wykonujący klasyfikacjie do gatunku na podstawie przekazanych danych utworu.
+    Endpoint that performs genre classification based on the provided track data.
     """
     pipeline = pipelines.get("classification")
     
-    # 503 Service Unavailable, jeśli pipeline nie jest załadowany
+    # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
 
@@ -141,11 +141,11 @@ def classify(data: ClassificationInput):
 @app.post("/recommend")
 def recommend(data: RecommendationInput, n_recommendations: int = 5):
     """
-    Endpoint zwracający najbardziej zbliżone utwory ze zbioru treningowego na podstawie danych
+    Endpoint returning the most similar tracks from the training set based on the data.
     """
     pipeline = pipelines.get("recommendation")
     
-    # 503 Service Unavailable, jeśli pipeline nie jest załadowany
+    # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
 

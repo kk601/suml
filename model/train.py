@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 
 def load_data() -> pd.DataFrame:
     """Downloads the dataset from Hugging Face and returns a Pandas DataFrame."""    
-    logger.info("Pobieranie zbioru danych z Hugging Face...")
+    logger.info("Downloading dataset from Hugging Face...")
     dataset = load_dataset("maharshipandya/spotify-tracks-dataset")
 
     df = dataset['train'].to_pandas()
-    logger.info(f"Pomyślnie załadowano dane. Rozmiar: {df.shape}")
+    logger.info(f"Successfully loaded data. Size: {df.shape}")
     return df
 
 def preprocess_features(df: pd.DataFrame):
     """Initial preprocessing and filtering."""
-    logger.info("Rozpoczęto wstępny preprocessing...")
+    logger.info("Started initial preprocessing...")
 
     unwanted_genres = [
         'indian', 'bollywood', 'world-music', 'comedy'
@@ -41,7 +41,7 @@ def preprocess_features(df: pd.DataFrame):
     
     df = df.drop_duplicates(subset=['track_name', 'artists']).reset_index(drop=True)
 
-    logger.info(f"Po usunięciu duplikatów i niechcianych gatunków zostało wierszy: {df.shape[0]}")
+    logger.info(f"Rows remaining after removing duplicates and unwanted genres: {df.shape[0]}")
 
     df['explicit'] = df['explicit'].astype(bool).map({False: 0, True: 1})
 
@@ -69,7 +69,7 @@ def train_model(model: BaseEstimator, X_train: pd.DataFrame, y_train: pd.DataFra
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate model quality metrics."""
-    logger.info("Ewaluacja modelu na zbiorze testowym...")
+    logger.info("Evaluating the model on the test set...")
     y_pred = model.predict(X_test)
 
     if is_regressor(model):
@@ -77,7 +77,7 @@ def evaluate_model(model, X_test, y_test):
             "mean_absolute_error": float(mean_absolute_error(y_test, y_pred)),
             "mean_squared_error": float(mean_squared_error(y_test, y_pred))
         }
-        logger.info(f"Metryki Regresji: {metrics}")
+        logger.info(f"Regression Metrics: {metrics}")
     elif is_classifier(model):
         metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred)),
@@ -85,7 +85,7 @@ def evaluate_model(model, X_test, y_test):
             "recall": float(recall_score(y_test, y_pred, average='weighted', zero_division=0)),
             "f1": float(f1_score(y_test, y_pred, average='weighted', zero_division=0)),
         }
-        logger.info(f"Metryki Klasyfikacji: {metrics}")
+        logger.info(f"Classification Metrics: {metrics}")
         
     return metrics
 
@@ -96,7 +96,7 @@ def save_pipeline(pipeline, output_path: str) -> None:
 
     with open(output_path, 'wb') as f:
         joblib.dump(pipeline, f)
-    logger.info(f"Zapisano pipeline do pliku: {output_path}")
+    logger.info(f"Saved pipeline to file: {output_path}")
 
 def main():
     df = load_data()
@@ -121,7 +121,7 @@ def main():
     # Prepare data for recommendation
     X_nn = df.drop(["popularity"], axis=1)
 
-    logger.info("Podział na zbiory treningowe i testowe...")
+    logger.info("Splitting into training and test sets...")
     X_reg_train, X_reg_test, y_reg_train, y_reg_test = split_data(
         X_reg,
         y_reg
@@ -182,11 +182,11 @@ def main():
         ]
     )
 
-    logger.info("Trenowanie modelu regresji...")
+    logger.info("Training the regression model...")
     pipeline_reg = train_model(pipeline_reg, X_reg_train, y_reg_train)
-    logger.info("Trenowanie modelu klasyfikacji...")
+    logger.info("Training the classification model...")
     pipeline_clf = train_model(pipeline_clf, X_clf_train, y_clf_train)
-    logger.info("Przygotowywanie modelu rekomendacji...")
+    logger.info("Preparing the recommendation model...")
     pipeline_nn = train_model(pipeline_nn, X_nn)
 
     metrics_reg = evaluate_model(pipeline_reg, X_reg_test, y_reg_test)
@@ -213,7 +213,7 @@ def main():
     save_pipeline(pipeline_clf,path_clf)
     save_pipeline(pipeline_nn,path_nn)
 
-    logger.info("Wszystkie operacje zakończone sukcesem")
+    logger.info("All operations completed successfully")
 
 if __name__ == "__main__":
     main()
