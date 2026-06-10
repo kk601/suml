@@ -1,6 +1,6 @@
-import joblib
 import logging
 import os
+import joblib
 import pandas as pd
 from datasets import load_dataset
 from sklearn.pipeline import Pipeline
@@ -10,7 +10,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.neighbors import NearestNeighbors
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error,
+                             mean_squared_error, precision_score, recall_score)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +26,7 @@ def load_data() -> pd.DataFrame:
     dataset = load_dataset("maharshipandya/spotify-tracks-dataset")
 
     df = dataset['train'].to_pandas()
-    logger.info(f"Successfully loaded data. Size: {df.shape}")
+    logger.info("Successfully loaded data. Size: %s", df.shape)
     return df
 
 def preprocess_features(df: pd.DataFrame):
@@ -38,10 +39,10 @@ def preprocess_features(df: pd.DataFrame):
 
     unwanted_track_ids = df[df['track_genre'].isin(unwanted_genres)]['track_id'].unique()
     df = df[~df['track_id'].isin(unwanted_track_ids)]
-    
+
     df = df.drop_duplicates(subset=['track_name', 'artists']).reset_index(drop=True)
 
-    logger.info(f"Rows remaining after removing duplicates and unwanted genres: {df.shape[0]}")
+    logger.info("Rows remaining after removing duplicates and unwanted genres: %s", df.shape[0])
 
     df['explicit'] = df['explicit'].astype(bool).map({False: 0, True: 1})
 
@@ -77,7 +78,7 @@ def evaluate_model(model, X_test, y_test):
             "mean_absolute_error": float(mean_absolute_error(y_test, y_pred)),
             "mean_squared_error": float(mean_squared_error(y_test, y_pred))
         }
-        logger.info(f"Regression Metrics: {metrics}")
+        logger.info("Regression Metrics: %s", metrics)
     elif is_classifier(model):
         metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred)),
@@ -85,8 +86,8 @@ def evaluate_model(model, X_test, y_test):
             "recall": float(recall_score(y_test, y_pred, average='weighted', zero_division=0)),
             "f1": float(f1_score(y_test, y_pred, average='weighted', zero_division=0)),
         }
-        logger.info(f"Classification Metrics: {metrics}")
-        
+        logger.info("Classification Metrics: %s", metrics)
+
     return metrics
 
 def save_pipeline(pipeline, output_path: str) -> None:
@@ -96,7 +97,7 @@ def save_pipeline(pipeline, output_path: str) -> None:
 
     with open(output_path, 'wb') as f:
         joblib.dump(pipeline, f)
-    logger.info(f"Saved pipeline to file: {output_path}")
+    logger.info("Saved pipeline to file: %s", output_path)
 
 def main():
     df = load_data()
@@ -167,14 +168,14 @@ def main():
         steps=[
             ('preprocessor', preprocessor_clf),
             ('classifier', RandomForestClassifier(
-                n_estimators=100, 
-                random_state=61, 
+                n_estimators=100,
+                random_state=61,
                 max_depth=15,
                 n_jobs=-1
             )),
         ]
     )
-    
+
     pipeline_nn = Pipeline(
         steps=[
             ('preprocessor', preprocessor_reg_nn),
@@ -202,7 +203,7 @@ def main():
     # Save classes from encoder
     pipeline_clf.target_classes_ = le_clf.classes_
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))    
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(current_dir, "..", "data")
 
     path_reg = os.path.join(data_dir, "regression_pipeline.pkl")

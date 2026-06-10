@@ -1,12 +1,11 @@
+"""FastAPI backend service for the Music App"""
 import os
-import logging
-import joblib
 from contextlib import asynccontextmanager
 from pathlib import Path
+import logging
+import joblib
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
 import pandas as pd
-from sklearn.preprocessing import StandardScaler,LabelEncoder
 
 
 from app.backend.schemas import ClassificationInput, RegressionInput, RecommendationInput
@@ -28,31 +27,31 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Load and remove pipelines on app start and close"""
-    
+
     pipeline_paths = {
         "regression": PIPELINES_DIR / "regression_pipeline.pkl",
         "classification": PIPELINES_DIR / "classification_pipeline.pkl",
         "recommendation": PIPELINES_DIR / "recommendation_pipeline.pkl"
     }
-    
+
     # Load all pipelines
     for name, path in pipeline_paths.items():
         if path.exists():
             try:
                 with open(path, "rb") as f:
                     pipelines[name] = joblib.load(f)
-                logger.info(f"Pipeline '{name}' loaded successfully.")
-            except Exception as e:
-                logger.error(f"Error loading pipeline '{name}': {e}")
+                logger.info("Pipeline '%s' loaded successfully.", name)
+            except Exception as e: # pylint: disable=broad-exception-caught
+                logger.error("Error loading pipeline '%s': %s", name, e)
                 pipelines[name] = None
         else:
-            logger.warning(f"File for pipeline '{name}' not found at path: {path}")
+            logger.warning("File for pipeline '%s' not found at path: %s", name, path)
             pipelines[name] = None
-                
+
     yield
-    
+
     # Clear on shutdown
     pipelines.clear()
 
@@ -67,11 +66,11 @@ def get_model_info(model_data, include_metrics=True):
     """Helper to safely extract model status and metrics."""
     if not model_data:
         return {"status": "error", "metrics": None} if include_metrics else {"status": "error"}
-    
+
     result = {"status": "ok"}
     if include_metrics:
         result["metrics"] = getattr(model_data, "metrics_", None)
-        
+
     return result
 
 @app.get("/health")
@@ -88,11 +87,9 @@ def health_check():
 
 @app.post("/predict")
 def predict(data: RegressionInput):
-    """
-    Endpoint that performs prediction based on the provided track data.
-    """
+    """Endpoint that performs prediction based on the provided track data."""
     pipeline = pipelines.get("regression")
-    
+
     # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
@@ -101,22 +98,20 @@ def predict(data: RegressionInput):
         input_df = pd.DataFrame([data.model_dump(by_alias=True)])
 
         prediction = pipeline.predict(input_df)
-        
+
         return {"prediction": float(prediction[0])}
-        
+
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
+        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}") from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
-    
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}") from e
+
 
 @app.post("/classify")
 def classify(data: ClassificationInput):
-    """
-    Endpoint that performs genre classification based on the provided track data.
-    """
+    """Endpoint that performs genre classification based on the provided track data."""
     pipeline = pipelines.get("classification")
-    
+
     # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
@@ -132,19 +127,17 @@ def classify(data: ClassificationInput):
             genre_name = str(pipeline.target_classes_[prediction_int])
 
         return {"genre_name": genre_name}
-        
+
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
+        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}") from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
-    
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}") from e
+
 @app.post("/recommend")
 def recommend(data: RecommendationInput, n_recommendations: int = 5):
-    """
-    Endpoint returning the most similar tracks from the training set based on the data.
-    """
+    """Endpoint returning the most similar tracks from the training set based on the data."""
     pipeline = pipelines.get("recommendation")
-    
+
     # 503 Service Unavailable, if pipeline is not loaded
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model pipeline not loaded.")
@@ -167,7 +160,7 @@ def recommend(data: RecommendationInput, n_recommendations: int = 5):
         if hasattr(pipeline, "metadata_"):
             metadata_df = pipeline.metadata_
             recommended_metadata = metadata_df.iloc[recommended_indices]
-            
+
             for i, (_, row) in enumerate(recommended_metadata.iterrows()):
                 recommendations.append({
                     "track_id": str(row.get("track_id", "")),
@@ -179,28 +172,28 @@ def recommend(data: RecommendationInput, n_recommendations: int = 5):
         else:
             # Fallback
             recommendations = [
-                {"dataset_index": idx, "distance": dist} 
+                {"dataset_index": idx, "distance": dist}
                 for idx, dist in zip(recommended_indices, recommended_distances)
             ]
 
         return {
             "recommendations": recommendations
         }
-        
+
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}")
+        raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}") from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}") from e
 
 @app.get("/genres")
 def get_available_genres():
     """Returns a list of genres supported by the current classification model"""
     cls_pipeline = pipelines.get("classification")
-    
+
     if cls_pipeline is None or not hasattr(cls_pipeline, "target_classes_"):
         raise HTTPException(
-            status_code=503, 
+            status_code=503,
             detail="Classification model is currently unavailable."
         )
-        
+
     return {"genres": cls_pipeline.target_classes_.tolist()}
