@@ -20,6 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def load_data() -> pd.DataFrame:
     """Downloads the dataset from Hugging Face and returns a Pandas DataFrame."""    
     logger.info("Downloading dataset from Hugging Face...")
@@ -28,6 +29,7 @@ def load_data() -> pd.DataFrame:
     df = dataset['train'].to_pandas()
     logger.info("Successfully loaded data. Size: %s", df.shape)
     return df
+
 
 def preprocess_features(df: pd.DataFrame):
     """Initial preprocessing and filtering."""
@@ -48,6 +50,7 @@ def preprocess_features(df: pd.DataFrame):
 
     return df
 
+
 def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
     """Split the dataset into train and test subsets."""
 
@@ -61,12 +64,14 @@ def split_data(X: pd.DataFrame, y: pd.DataFrame, stratify_col=None):
 
     return X_train, X_test, y_train, y_test
 
+
 def train_model(model: BaseEstimator, X_train: pd.DataFrame, y_train: pd.DataFrame = None):
     """Initialize and train model."""
 
     model.fit(X_train, y_train)
 
     return model
+
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate model quality metrics."""
@@ -90,6 +95,7 @@ def evaluate_model(model, X_test, y_test):
 
     return metrics
 
+
 def save_pipeline(pipeline, output_path: str) -> None:
     """Save pipeline to .pkl file."""
 
@@ -98,6 +104,7 @@ def save_pipeline(pipeline, output_path: str) -> None:
     with open(output_path, 'wb') as f:
         joblib.dump(pipeline, f)
     logger.info("Saved pipeline to file: %s", output_path)
+
 
 def main():
     df = load_data()
@@ -215,6 +222,7 @@ def main():
     save_pipeline(pipeline_nn,path_nn)
 
     logger.info("All operations completed successfully")
+
 
 if __name__ == "__main__":
     main()

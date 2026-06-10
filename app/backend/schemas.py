@@ -1,6 +1,7 @@
 """Schemas for the Music App API"""
 from pydantic import BaseModel, Field
 
+
 class TrackFeatures(BaseModel):
     duration_ms: int = Field(
         ..., title="Duration (ms)", description="Track duration in milliseconds",
@@ -59,12 +60,15 @@ class TrackFeatures(BaseModel):
         example=4, ge=1, le=5
     )
 
+
 class RegressionInput(TrackFeatures):
     track_genre: str = Field(
         ..., title="Genre Context", example="pop")
 
+
 class ClassificationInput(TrackFeatures):
     pass
+
 
 class RecommendationInput(TrackFeatures):
     track_genre: str = Field(

@@ -6,11 +6,13 @@ import requests
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
+
 # Initialy fetch inputs schemas and genres
 @st.cache_data
 def fetch_schema():
     response = requests.get(f"{API_URL}/openapi.json", timeout=10)
     return response.json()
+
 
 @st.cache_data
 def fetch_genres():
@@ -21,6 +23,7 @@ def fetch_genres():
     except requests.exceptions.ConnectionError:
         return fallback_options
 
+
 openapi_data = fetch_schema()
 available_genres = fetch_genres()
 
@@ -28,6 +31,7 @@ track_rules = openapi_data["components"]["schemas"]["RegressionInput"]["properti
 
 # Use wide mode and collapse sidebar by default
 st.set_page_config(page_title="Music App", page_icon="🎵", layout="wide")
+
 
 # Helpers for creating auto validated fields
 def create_auto_slider(field_name, step=None):
@@ -69,6 +73,7 @@ def create_auto_number(field_name, step=None):
         default_val = float(raw_default)
 
     return st.number_input(title, min_value=min_val, max_value=max_val, value=default_val, step=step)
+
 
 # Store selected fields in dictionary
 base_payload = {}

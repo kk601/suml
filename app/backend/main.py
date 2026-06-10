@@ -7,11 +7,10 @@ import joblib
 from fastapi import FastAPI, HTTPException
 import pandas as pd
 
-
 from app.backend.schemas import ClassificationInput, RegressionInput, RecommendationInput
 
-pipelines = {}
 
+pipelines = {}
 
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
@@ -25,6 +24,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -62,6 +62,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
 def get_model_info(model_data, include_metrics=True):
     """Helper to safely extract model status and metrics."""
     if not model_data:
@@ -72,6 +73,7 @@ def get_model_info(model_data, include_metrics=True):
         result["metrics"] = getattr(model_data, "metrics_", None)
 
     return result
+
 
 @app.get("/health")
 def health_check():
@@ -84,6 +86,7 @@ def health_check():
             "recommendation": get_model_info(pipelines.get("recommendation"), include_metrics=False),
         }
     }
+
 
 @app.post("/predict")
 def predict(data: RegressionInput):
@@ -132,6 +135,7 @@ def classify(data: ClassificationInput):
         raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}") from ve
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}") from e
+
 
 @app.post("/recommend")
 def recommend(data: RecommendationInput, n_recommendations: int = 5):
@@ -184,6 +188,7 @@ def recommend(data: RecommendationInput, n_recommendations: int = 5):
         raise HTTPException(status_code=400, detail=f"Data format error: {str(ve)}") from ve
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}") from e
+
 
 @app.get("/genres")
 def get_available_genres():
